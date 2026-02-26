@@ -112,22 +112,40 @@ const ChatRoom: React.FC = () => {
                         };
 
                         setMessages(prev => {
-                            // Find any optimistic message that matches this new message
-                            const optimisticIndex = prev.findIndex(m =>
-                                m.IsOptimistic &&
-                                String(m.UserID) === String(newMessage.UserID) &&
-                                m.Content.trim() === newMessage.Content.trim()
-                            );
+                            // 1. Check for accidental duplicates by real ID (e.g. if broadcast arrives twice)
+                            if (prev.some(m => !m.IsOptimistic && String(m.ID) === String(newMessage.ID))) {
+                                return prev;
+                            }
+
+                            // 2. Find any optimistic message that matches this new message
+                            // We match by: UserID AND (Content OR approximate timestamp)
+                            const optimisticIndex = prev.findIndex(m => {
+                                if (!m.IsOptimistic) return false;
+
+                                const sameUser = String(m.UserID) === String(newMessage.UserID);
+                                // Trim and compare content to be safe against server-side trimming
+                                const sameContent = m.Content.trim() === newMessage.Content.trim();
+
+                                // If it's the same user and same content, it's almost certainly the same message
+                                return sameUser && sameContent;
+                            });
 
                             if (optimisticIndex !== -1) {
-                                // Replace the optimistic message with the real one
+                                console.log('Matching optimistic message found, replacing...');
                                 const next = [...prev];
                                 next[optimisticIndex] = newMessage;
                                 return next;
                             }
 
-                            // If not found, check if we already have this message ID (prevent duplicates)
-                            if (prev.some(m => String(m.ID) === String(newMessage.ID))) return prev;
+                            // 3. Fallback: If we couldn't find an optimistic match but it's OUR message,
+                            // still check if we added a duplicate recently (prevent race condition)
+                            if (String(newMessage.UserID) === String(user?.ID)) {
+                                // If the message content matches any recent message from us, ignore it to prevent duplicates
+                                // (This covers cases where the broadcast arrives before React state finishes updating)
+                                if (prev.slice(-5).some(m => m.Content.trim() === newMessage.Content.trim())) {
+                                    return prev;
+                                }
+                            }
 
                             return [...prev, newMessage];
                         });

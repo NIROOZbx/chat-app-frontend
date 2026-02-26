@@ -14,7 +14,8 @@ interface User {
 
 interface AuthContextType {
     user: User | null;
-    loading: boolean;
+    isInitializing: boolean;
+    isSubmitting: boolean;
     login: (username: string) => Promise<void>;
     signup: (formData: FormData) => Promise<void>;
     logout: () => void;
@@ -24,7 +25,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [isInitializing, setIsInitializing] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -37,7 +39,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             } catch (err) {
                 setUser(null);
             } finally {
-                setLoading(false);
+                setIsInitializing(false);
             }
         };
 
@@ -45,18 +47,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const login = async (username: string) => {
-        setLoading(true);
+        setIsSubmitting(true);
         try {
             const response = await apiClient.post('/auth-user', { name: username });
             setUser(response.data.data);
             navigate("/rooms")
         } finally {
-            setLoading(false);
+            setIsSubmitting(false);
         }
     };
 
     const signup = async (formData: FormData) => {
-        setLoading(true);
+        setIsSubmitting(true);
         try {
             const response = await apiClient.post('/create-user', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
@@ -64,7 +66,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setUser(response.data.data);
             navigate("/rooms")
         } finally {
-            setLoading(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -74,7 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+        <AuthContext.Provider value={{ user, isInitializing, isSubmitting, login, signup, logout }}>
             {children}
         </AuthContext.Provider>
     );

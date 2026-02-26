@@ -17,7 +17,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
-    const { login, signup, loading } = useAuth();
+    const { login, signup, isSubmitting } = useAuth();
 
     if (!isOpen) return null;
 
@@ -140,11 +140,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
                         <div className="pt-4">
                             <button
-                                disabled={loading || !username}
+                                disabled={isSubmitting || !username}
                                 type="submit"
                                 className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100"
                             >
-                                {loading ? (
+                                {isSubmitting ? (
                                     <>
                                         <Loader2 size={20} className="animate-spin" />
                                         {mode === 'login' ? 'Logging in...' : 'Creating...'}
