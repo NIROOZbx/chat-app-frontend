@@ -47,9 +47,13 @@ const ChatRoom: React.FC = () => {
         scrollToBottom();
     }, [messages, scrollToBottom]);
 
-    // Fetch initial messages
+    // Fetch message history
     useEffect(() => {
         if (!id) return;
+
+        // Reset state on room change
+        setMessages([]);
+        setLoadingMessages(true);
 
         const fetchMessages = async () => {
             try {
