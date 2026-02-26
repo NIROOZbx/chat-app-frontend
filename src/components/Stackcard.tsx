@@ -1,5 +1,5 @@
 import CardSwap, { Card } from './CardSwap'
-import { ArrowBigDown, ArrowBigRight, ArrowUpRight, Sparkles } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
 const images = [
     "/chat5.jpg",

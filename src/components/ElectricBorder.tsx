@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useCallback, CSSProperties, ReactNode } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import './ElectricBorder.css';
 
 interface ElectricBorderProps {

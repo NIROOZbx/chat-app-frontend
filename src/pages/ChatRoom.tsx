@@ -34,7 +34,6 @@ const ChatRoom: React.FC = () => {
     const [lastTyped, setLastTyped] = useState(0);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const typingTimeoutRef = useRef<any>(null);
     const userTypingTimeouts = useRef<Record<number, any>>({});
 
     // Find the room in joined rooms
