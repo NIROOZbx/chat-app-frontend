@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import apiClient from '../lib/api';
+import { useAuth } from './AuthContext';
 
 interface Room {
     ID: number;
@@ -29,11 +30,17 @@ interface RoomContextType {
 const RoomContext = createContext<RoomContextType | undefined>(undefined);
 
 export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const { user } = useAuth();
     const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
     const [joinedRooms, setJoinedRooms] = useState<Room[]>([]);
     const [loading, setLoading] = useState(true); // Default to true for initial mount
 
     const fetchAllRooms = async () => {
+        if (!user) {
+            setAvailableRooms([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const response = await apiClient.get('/rooms/');
@@ -46,6 +53,11 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const fetchJoinedRooms = async () => {
+        if (!user) {
+            setJoinedRooms([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const response = await apiClient.get('/rooms/joined');
@@ -58,6 +70,12 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const refreshAll = async () => {
+        if (!user) {
+            setAvailableRooms([]);
+            setJoinedRooms([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             await Promise.all([

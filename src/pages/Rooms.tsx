@@ -4,28 +4,36 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import ElectricBorder from '../components/ElectricBorder';
 import CreateRoomModal from '../components/CreateRoomModal';
-import { Plus, Users, Hash, Loader2 } from 'lucide-react';
+import { Plus, Users, Hash, Loader2, Lock } from 'lucide-react';
 import { useRooms } from '../context/RoomContext';
+import { useAuth } from '../context/AuthContext';
+import AuthModal from '../components/AuthModal';
 
 const Rooms = () => {
     const { availableRooms, joinedRooms, loading, fetchAllRooms, fetchJoinedRooms, refreshAll, joinRoom } = useRooms();
+    const { user, isInitializing } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
     const [activeTab, setActiveTab] = useState<'available' | 'joined'>('available');
     const [privacyFilter, setPrivacyFilter] = useState<'all' | 'public' | 'private'>('all');
     const [joiningId, setJoiningId] = useState<number | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
-        refreshAll();
-    }, []);
+        if (user) {
+            refreshAll();
+        }
+    }, [user]);
 
     useEffect(() => {
+        if (!user) return;
         if (activeTab === 'available') {
             fetchAllRooms();
         } else {
             fetchJoinedRooms();
         }
-    }, [activeTab]);
+    }, [activeTab, user]);
 
     const handleJoinRoom = async (roomId: number) => {
         setJoiningId(roomId);
@@ -108,7 +116,40 @@ const Rooms = () => {
                     </div>
                 </div>
 
-                {loading && !joiningId && filteredRooms.length === 0 ? (
+                {/* Auth Guard for Groups */}
+                {!user && !isInitializing ? (
+                    <div className="text-center py-20 bg-neutral-900/30 rounded-[40px] border border-dashed border-white/10 flex flex-col items-center justify-center space-y-8">
+                        <div className="bg-white/5 w-20 h-20 rounded-full flex items-center justify-center mx-auto transition-transform hover:scale-110">
+                            <Lock size={40} className="text-white/20" />
+                        </div>
+                        <div className="space-y-4 max-w-md mx-auto">
+                            <h2 className="text-3xl font-bold tracking-tight">Login Required</h2>
+                            <p className="text-white/40 text-lg leading-relaxed">
+                                You need to be logged in to explore and join chat communities. Join the conversation today!
+                            </p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 w-full px-6 sm:px-0 sm:w-auto">
+                            <button
+                                onClick={() => {
+                                    setAuthMode('login');
+                                    setIsAuthModalOpen(true);
+                                }}
+                                className="px-8 py-4 bg-white text-black font-bold rounded-full hover:scale-105 active:scale-95 transition-all text-sm uppercase tracking-widest shadow-xl shadow-white/5"
+                            >
+                                Login
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setAuthMode('signup');
+                                    setIsAuthModalOpen(true);
+                                }}
+                                className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-full border border-white/10 transition-all text-sm uppercase tracking-widest"
+                            >
+                                Register
+                            </button>
+                        </div>
+                    </div>
+                ) : loading && !joiningId && filteredRooms.length === 0 ? (
                     <div className="flex justify-center items-center h-64">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
                     </div>
@@ -193,6 +234,12 @@ const Rooms = () => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={() => refreshAll()}
+            />
+
+            <AuthModal
+                isOpen={isAuthModalOpen}
+                onClose={() => setIsAuthModalOpen(false)}
+                initialMode={authMode}
             />
         </div>
     );

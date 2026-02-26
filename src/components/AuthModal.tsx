@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Upload, Check, Loader2, User, LogIn, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -7,10 +7,11 @@ import { useAuth } from '../context/AuthContext';
 interface AuthModalProps {
     isOpen: boolean;
     onClose: () => void;
+    initialMode?: 'login' | 'signup';
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-    const [mode, setMode] = useState<'login' | 'signup'>('login');
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'login' }) => {
+    const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
     const [username, setUsername] = useState('');
     const [image, setImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -18,6 +19,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
     const { login, signup, isSubmitting } = useAuth();
+
+    // Sync mode if initialMode changes while modal is closed or on first open
+    useEffect(() => {
+        if (isOpen) {
+            setMode(initialMode);
+        }
+    }, [isOpen, initialMode]);
 
     if (!isOpen) return null;
 
