@@ -49,8 +49,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const login = async (username: string) => {
         setIsSubmitting(true);
         try {
-            const response = await apiClient.post('/auth-user', { name: username });
-            setUser(response.data.data);
+             await apiClient.post('/auth-user', { name: username });
+            const {data}=await apiClient.get("/me")
+            setUser(data.data);
             navigate("/rooms")
         } finally {
             setIsSubmitting(false);

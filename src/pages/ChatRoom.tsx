@@ -21,7 +21,7 @@ const ChatRoom: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { joinedRooms, loading: loadingRooms, leaveRoom } = useRooms();
-    const { user } = useAuth();
+    const { user, isInitializing: authLoading } = useAuth();
 
     const [messageInput, setMessageInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
@@ -35,6 +35,7 @@ const ChatRoom: React.FC = () => {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const userTypingTimeouts = useRef<Record<number, any>>({});
+    const notifiedUsers = useRef<Set<number>>(new Set());
 
     // Find the room in joined rooms
     const room = joinedRooms.find(r => r.ID === Number(id));
@@ -60,12 +61,12 @@ const ChatRoom: React.FC = () => {
                 const response = await apiClient.get(`/rooms/${id}/messages?limit=50&page=1`);
                 if (response.data.success) {
                     const mappedMessages = response.data.data.map((msg: any) => ({
-                        ID: msg.id,
-                        RoomID: msg.room_id,
-                        UserID: msg.user_id,
-                        UserName: msg.user_name,
-                        Content: msg.content,
-                        CreatedAt: msg.created_at
+                        ID: msg.ID || msg.id || msg.MessageID || msg.message_id,
+                        RoomID: msg.RoomID || msg.room_id,
+                        UserID: msg.UserID || msg.user_id,
+                        UserName: msg.UserName || msg.user_name || msg.Username || 'User',
+                        Content: msg.Content || msg.content,
+                        CreatedAt: msg.CreatedAt || msg.created_at || msg.SentAt
                     }));
                     // Functional update to avoid losing live messages received while fetching
                     setMessages(prev => {
@@ -86,220 +87,192 @@ const ChatRoom: React.FC = () => {
 
     // WebSocket connection for presence and typing
     useEffect(() => {
-        if (!id || !user) return;
+        // Wait for ID and User to be fully ready
+        if (!id || !user || authLoading) return;
 
         const wsBaseUrl = import.meta.env.VITE_WS_URL;
-        let wsUrl;
+        let isMounted = true;
+        let ws: WebSocket | null = null;
+        let timer: any = null;
 
-        if (wsBaseUrl) {
-            // Use the provided base and append the room ID
-            const base = wsBaseUrl.endsWith('/') ? wsBaseUrl.slice(0, -1) : wsBaseUrl;
-            wsUrl = `${base}/${id}`;
-        } else {
-            // Fallback to dynamic host detection
-            const apiHost = BASE_URL.replace(/^https?:\/\//, '').split('/')[0];
-            const wsProtocol = BASE_URL.startsWith('https') ? 'wss:' : 'ws:';
-            wsUrl = `${wsProtocol}//${apiHost}/api/v1/rooms/ws/${id}`;
-        }
+        const connect = () => {
+            if (!isMounted) return;
 
-        const ws = new WebSocket(wsUrl);
+            let wsUrl: string;
+            if (wsBaseUrl) {
+                const base = wsBaseUrl.endsWith('/') ? wsBaseUrl.slice(0, -1) : wsBaseUrl;
+                wsUrl = `${base}/${id}`;
+            } else {
+                const apiHost = BASE_URL.replace(/^https?:\/\//, '').split('/')[0];
+                const wsProtocol = BASE_URL.startsWith('https') ? 'wss:' : 'ws:';
+                wsUrl = `${wsProtocol}//${apiHost}/api/v1/rooms/ws/${id}`;
+            }
 
-        ws.onopen = () => {
-            console.log('WebSocket Connected');
-            setSocket(ws);
-        };
+            ws = new WebSocket(wsUrl);
 
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                console.log('WS Event received:', data);
+            ws.onopen = () => {
+                if (!isMounted) {
+                    ws?.close();
+                    return;
+                }
+                console.log('WebSocket Connected to:', wsUrl);
+                setSocket(ws);
+            };
 
-                switch (data.type) {
-                    case 'message.new':
-                        const mid = data.MessageID || data.message_id || data.id;
-                        const rid = data.RoomID || data.room_id;
-                        const uid = data.UserID || data.user_id;
-                        const uname = data.UserName || data.user_name;
-                        const content = data.Content || data.content;
-                        const sentAt = data.SentAt || data.sent_at || data.created_at;
+            ws.onmessage = (event) => {
+                if (!isMounted) return;
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('WS Event received:', data);
 
-                        const newMessage: Message = {
-                            ID: mid,
-                            RoomID: rid,
-                            UserID: uid,
-                            UserName: uname,
-                            Content: content,
-                            CreatedAt: sentAt
-                        };
+                    switch (data.type) {
+                        case 'message.new':
+                            const mid = data.MessageID || data.message_id || data.id || data.ID;
+                            const rid = data.RoomID || data.room_id || data.RoomId;
+                            const uid = data.UserID || data.user_id || data.UserId;
+                            const uname = data.UserName || data.user_name || data.Username;
+                            const content = data.Content || data.content;
+                            const sentAt = data.SentAt || data.sent_at || data.created_at || data.CreatedAt;
 
-                        setMessages(prev => {
-                            // 1. Check for accidental duplicates by real ID (e.g. if broadcast arrives twice)
-                            if (prev.some(m => !m.IsOptimistic && String(m.ID) === String(newMessage.ID))) {
-                                return prev;
-                            }
+                            const newMessage: Message = {
+                                ID: mid,
+                                RoomID: rid,
+                                UserID: uid,
+                                UserName: uname,
+                                Content: content,
+                                CreatedAt: sentAt
+                            };
 
-                            // 2. Find any optimistic message that matches this new message
-                            // We match by: UserID AND (Content OR approximate timestamp)
-                            const optimisticIndex = prev.findIndex(m => {
-                                if (!m.IsOptimistic) return false;
-
-                                const sameUser = String(m.UserID) === String(newMessage.UserID);
-                                // Trim and compare content to be safe against server-side trimming
-                                const sameContent = m.Content.trim() === newMessage.Content.trim();
-
-                                // If it's the same user and same content, it's almost certainly the same message
-                                return sameUser && sameContent;
-                            });
-
-                            if (optimisticIndex !== -1) {
-                                console.log('Matching optimistic message found, replacing...');
-                                const next = [...prev];
-                                next[optimisticIndex] = newMessage;
-                                return next;
-                            }
-
-                            // 3. Fallback: If we couldn't find an optimistic match but it's OUR message,
-                            // still check if we added a duplicate recently (prevent race condition)
-                            if (String(newMessage.UserID) === String(user?.ID)) {
-                                // If the message content matches any recent message from us, ignore it to prevent duplicates
-                                // (This covers cases where the broadcast arrives before React state finishes updating)
-                                if (prev.slice(-5).some(m => m.Content.trim() === newMessage.Content.trim())) {
+                            setMessages(prev => {
+                                if (prev.some(m => !m.IsOptimistic && String(m.ID) === String(newMessage.ID))) {
                                     return prev;
                                 }
-                            }
 
-                            return [...prev, newMessage];
-                        });
-                        break;
+                                const optimisticIndex = prev.findIndex(m => {
+                                    if (!m.IsOptimistic) return false;
+                                    const sameUser = String(m.UserID) === String(newMessage.UserID);
+                                    const sameContent = m.Content.trim() === newMessage.Content.trim();
+                                    return sameUser && sameContent;
+                                });
 
-                    case 'room.user_joined':
-                        const juid = data.UserID || data.user_id;
-                        const juname = data.UserName || data.user_name;
-                        const jrid = data.RoomID || data.room_id;
+                                if (optimisticIndex !== -1) {
+                                    console.log('Matching optimistic message found, replacing...');
+                                    const next = [...prev];
+                                    next[optimisticIndex] = newMessage;
+                                    return next;
+                                }
 
-                        // Don't show system message for SELF
-                        if (!juid || !user?.ID || String(juid) === String(user.ID)) return;
+                                if (String(newMessage.UserID) === String(user?.ID)) {
+                                    console.log('Checking fallback for own message deduplication...');
+                                    const isDuplicate = prev.slice(-3).some(m =>
+                                        m.Content.trim() === newMessage.Content.trim() &&
+                                        !m.IsOptimistic &&
+                                        (String(m.ID) === String(newMessage.ID) || String(m.ID) === 'undefined')
+                                    );
+                                    if (isDuplicate) {
+                                        console.log('Duplicate own message detected, skipping state update.');
+                                        return prev;
+                                    }
+                                }
 
-                        console.log('User joined event data:', data);
-                        const joinMsg: Message = {
-                            ID: `join-${juid}-${Date.now()}`,
-                            RoomID: jrid,
-                            UserName: 'System',
-                            Content: `${juname || 'A user'} joined the room`,
-                            CreatedAt: new Date().toISOString(),
-                            IsSystem: true
-                        };
-                        setMessages(prev => [...prev, joinMsg]);
-                        setOnlineUsers(prev => new Set([...prev, juid]));
-                        break;
+                                console.log('Adding new message to state:', newMessage);
+                                return [...prev, newMessage];
+                            });
+                            break;
 
-                    case 'room.user_left':
-                        const luid = data.UserID || data.user_id;
-                        const luname = data.UserName || data.user_name;
-                        const lrid = data.RoomID || data.room_id;
+                        case 'room.user_joined':
+                        case 'user.online':
+                            const ouid = data.UserID || data.user_id;
+                            const ouname = data.UserName || data.user_name;
+                            const orid = data.RoomID || data.room_id;
 
-                        // Don't show system message for SELF
-                        if (!luid || !user?.ID || String(luid) === String(user.ID)) return;
+                            if (!ouid) return;
+                            const userIdNum = Number(ouid);
 
-                        const leaveMsg: Message = {
-                            ID: `leave-${luid}-${Date.now()}`,
-                            RoomID: lrid,
-                            UserName: 'System',
-                            Content: `${luname || 'A user'} left the room`,
-                            CreatedAt: new Date().toISOString(),
-                            IsSystem: true
-                        };
-                        setMessages(prev => [...prev, leaveMsg]);
-                        setOnlineUsers(prev => {
-                            const next = new Set(prev);
-                            next.delete(luid);
-                            return next;
-                        });
-                        break;
-
-                    case 'room.typing':
-                        const tuid = data.UserID || data.user_id;
-                        const tuname = data.UserName || data.user_name || 'Someone';
-
-                        // Don't show typing indicator for SELF
-                        if (!tuid || !user?.ID || String(tuid) === String(user.ID)) return;
-
-                        setTypingUsers(prev => ({
-                            ...prev,
-                            [tuid]: tuname
-                        }));
-
-                        if (userTypingTimeouts.current[tuid]) {
-                            clearTimeout(userTypingTimeouts.current[tuid]);
-                        }
-
-                        userTypingTimeouts.current[tuid] = setTimeout(() => {
-                            setTypingUsers(prev => {
-                                const next = { ...prev };
-                                delete next[tuid];
+                            // Update online users set regardless of who it is
+                            setOnlineUsers(prev => {
+                                if (prev.has(userIdNum)) return prev;
+                                const next = new Set(prev);
+                                next.add(userIdNum);
                                 return next;
                             });
-                        }, 3000);
-                        break;
 
-                    case 'user.online':
-                        const ouid = data.UserID || data.user_id;
-                        const ouname = data.UserName || data.user_name;
-                        const orid = data.RoomID || data.room_id;
+                            // Only show "is now online" for OTHERS and if not already notified
+                            if (userIdNum !== user?.ID && !notifiedUsers.current.has(userIdNum)) {
+                                notifiedUsers.current.add(userIdNum);
+                                const onlineMsg: Message = {
+                                    ID: `online-${userIdNum}-${Date.now()}`,
+                                    RoomID: orid,
+                                    UserName: 'System',
+                                    Content: `${ouname || 'A user'} is now online`,
+                                    CreatedAt: new Date().toISOString(),
+                                    IsSystem: true
+                                };
+                                setMessages(m => [...m, onlineMsg]);
+                            }
+                            break;
 
-                        // Don't show system message for SELF
-                        if (String(ouid) === String(user?.ID)) {
-                            setOnlineUsers(prev => new Set([...prev, ouid]));
-                            return;
-                        }
+                        case 'room.user_left':
+                        case 'user.offline':
+                            const luid = data.UserID || data.user_id;
+                            if (!luid) return;
+                            const leftIdNum = Number(luid);
 
-                        setOnlineUsers(prev => {
-                            if (prev.has(ouid)) return prev;
+                            notifiedUsers.current.delete(leftIdNum);
+                            setOnlineUsers(prev => {
+                                if (!prev.has(leftIdNum)) return prev;
+                                const next = new Set(prev);
+                                next.delete(leftIdNum);
+                                return next;
+                            });
+                            break;
 
-                            const next = new Set(prev);
-                            next.add(ouid);
+                        case 'room.typing':
+                            const tuid = data.UserID || data.user_id;
+                            const tuname = data.UserName || data.user_name || 'Someone';
+                            if (!tuid || String(tuid) === String(user?.ID)) return;
 
-                            // Add system message ONLY if they were newly added to the set
-                            const onlineMsg: Message = {
-                                ID: `online-${ouid}-${Date.now()}`,
-                                RoomID: orid,
-                                UserName: 'System',
-                                Content: `${ouname || 'A user'} is now online`,
-                                CreatedAt: new Date().toISOString(),
-                                IsSystem: true
-                            };
-                            setMessages(m => [...m, onlineMsg]);
-
-                            return next;
-                        });
-                        break;
-
-                    case 'user.offline':
-                        const offuid = data.UserID || data.user_id;
-                        setOnlineUsers(prev => {
-                            const next = new Set(prev);
-                            next.delete(offuid);
-                            return next;
-                        });
-                        break;
+                            setTypingUsers(prev => ({ ...prev, [Number(tuid)]: tuname }));
+                            if (userTypingTimeouts.current[Number(tuid)]) {
+                                clearTimeout(userTypingTimeouts.current[Number(tuid)]);
+                            }
+                            userTypingTimeouts.current[Number(tuid)] = setTimeout(() => {
+                                setTypingUsers(prev => {
+                                    const next = { ...prev };
+                                    delete next[Number(tuid)];
+                                    return next;
+                                });
+                            }, 3000);
+                            break;
+                    }
+                } catch (err) {
+                    console.error('Error parsing WS message:', err);
                 }
-            } catch (err) {
-                console.error('Error parsing WS message:', err);
-            }
+            };
+
+            ws.onclose = () => {
+                if (isMounted) {
+                    console.log('WebSocket Disconnected');
+                    setSocket(null);
+                    setOnlineUsers(new Set());
+                    setTypingUsers({});
+                }
+            };
         };
 
-        ws.onclose = () => {
-            console.log('WebSocket Disconnected');
-            setSocket(null);
-            setOnlineUsers(new Set());
-            setTypingUsers({});
-        };
+        // Delay connection slightly to allow navigation to settle
+        timer = setTimeout(connect, 100);
 
         return () => {
-            ws.close();
+            isMounted = false;
+            clearTimeout(timer);
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                console.log('Cleaning up WebSocket connection...');
+                ws.close();
+            }
             Object.values(userTypingTimeouts.current).forEach(clearTimeout);
         };
-    }, [id, user]);
+    }, [id, user?.ID, authLoading]);
 
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
