@@ -343,7 +343,9 @@ const ChatRoom: React.FC = () => {
         }
     };
 
-    if (loadingRooms || isLeaving) {
+    // Only show full-page loader if we don't have the room data yet AND we are fetching joined rooms
+    // Or if we are in the middle of leaving a room
+    if ((loadingRooms && !room) || (authLoading && !user) || isLeaving) {
         return (
             <div className="min-h-screen bg-black text-white flex flex-col">
                 <Navbar />
