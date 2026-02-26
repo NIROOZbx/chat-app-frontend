@@ -54,18 +54,18 @@ const Rooms = () => {
         <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black">
             <Navbar />
 
-            <main className="pt-32 pb-20 px-6 max-w-7xl mx-auto">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-                    <div>
-                        <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-white">Your Rooms</h1>
-                        <p className="text-white/50 mt-2 text-lg">Explore and manage your chat communities.</p>
+            <main className="pt-24 sm:pt-32 pb-20 px-4 sm:px-6 max-w-7xl mx-auto">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8 lg:mb-12">
+                    <div className="space-y-2">
+                        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter text-white">Your Rooms</h1>
+                        <p className="text-white/50 text-base sm:text-lg">Explore and manage your chat communities.</p>
                     </div>
 
                     <button
-                        className="group relative px-8 py-4 bg-white text-black font-semibold rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95"
+                        className="group relative w-full sm:w-auto px-8 py-4 bg-white text-black font-semibold rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95"
                         onClick={() => setIsModalOpen(true)}
                     >
-                        <span className="relative z-10 flex items-center gap-2">
+                        <span className="relative z-10 flex items-center justify-center gap-2">
                             <Plus size={20} />
                             Create Group
                         </span>
@@ -74,32 +74,32 @@ const Rooms = () => {
                 </div>
 
                 {/* Filters Section */}
-                <div className="flex flex-col sm:flex-row gap-6 mb-12 items-start sm:items-center justify-between border-b border-white/10 pb-8">
+                <div className="flex flex-col md:flex-row gap-6 mb-8 lg:mb-12 items-start md:items-center justify-between border-b border-white/10 pb-8">
                     {/* Tab Switcher */}
-                    <div className="flex bg-neutral-900/50 p-1 rounded-2xl border border-white/5">
+                    <div className="flex w-full md:w-auto bg-neutral-900/50 p-1 rounded-2xl border border-white/5">
                         <button
                             onClick={() => setActiveTab('available')}
-                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'available' ? 'bg-white text-black' : 'text-white/50 hover:text-white'}`}
+                            className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'available' ? 'bg-white text-black' : 'text-white/50 hover:text-white'}`}
                         >
                             Available
                         </button>
                         <button
                             onClick={() => setActiveTab('joined')}
-                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'joined' ? 'bg-white text-black' : 'text-white/50 hover:text-white'}`}
+                            className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'joined' ? 'bg-white text-black' : 'text-white/50 hover:text-white'}`}
                         >
                             Joined
                         </button>
                     </div>
 
                     {/* Privacy Filter */}
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm font-medium text-white/30">Filter by:</span>
-                        <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full md:w-auto">
+                        <span className="text-sm font-medium text-white/30 w-full sm:w-auto">Filter by:</span>
+                        <div className="flex gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
                             {(['all', 'public', 'private'] as const).map((filter) => (
                                 <button
                                     key={filter}
                                     onClick={() => setPrivacyFilter(filter)}
-                                    className={`px-4 py-1.5 rounded-full text-xs font-bold border transition-all capitalize ${privacyFilter === filter ? 'bg-white/10 border-white/20 text-white' : 'bg-transparent border-white/5 text-white/40 hover:border-white/10 hover:text-white/60'}`}
+                                    className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold border transition-all capitalize ${privacyFilter === filter ? 'bg-white/10 border-white/20 text-white' : 'bg-transparent border-white/5 text-white/40 hover:border-white/10 hover:text-white/60'}`}
                                 >
                                     {filter}
                                 </button>

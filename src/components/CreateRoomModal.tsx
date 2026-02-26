@@ -86,10 +86,10 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ isOpen, onClose, onSu
                 onClick={onClose}
             />
 
-            <div className="relative w-full max-w-xl bg-neutral-900 border border-white/10 rounded-[32px] overflow-hidden shadow-2xl">
-                <div className="p-8">
-                    <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-3xl font-bold tracking-normal  text-white">Create New Group</h2>
+            <div className="relative w-full max-w-xl bg-neutral-900 border border-white/10 rounded-[24px] sm:rounded-[32px] overflow-hidden shadow-2xl">
+                <div className="p-6 sm:p-8 max-h-[90vh] overflow-y-auto no-scrollbar">
+                    <div className="flex justify-between items-center mb-6 sm:mb-8">
+                        <h2 className="text-2xl sm:text-3xl font-bold tracking-normal text-white">Create New Group</h2>
                         <button
                             onClick={onClose}
                             className="p-2 hover:bg-white/5 rounded-full transition-colors"

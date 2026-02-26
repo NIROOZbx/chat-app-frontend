@@ -63,34 +63,34 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 onClick={onClose}
             />
 
-            <div className="relative w-full max-w-md bg-neutral-900 border border-white/10 rounded-[32px] overflow-hidden shadow-2xl">
-                <div className="p-8">
+            <div className="relative w-full max-w-md bg-neutral-900 border border-white/10 rounded-[28px] sm:rounded-[32px] overflow-hidden shadow-2xl">
+                <div className="p-6 sm:p-8">
                     <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-3xl font-bold tracking-tighter text-white">
+                        <h2 className="text-2xl sm:text-3xl font-bold tracking-tighter text-white">
                             {mode === 'login' ? 'Welcome Back' : 'Create Account'}
                         </h2>
                         <button
                             onClick={onClose}
                             className="p-2 hover:bg-white/5 rounded-full transition-colors"
                         >
-                            <X size={24} className="text-white/50" />
+                            <X size={20} className="sm:w-6 sm:h-6 text-white/50" />
                         </button>
                     </div>
 
                     {/* Mode Switcher */}
-                    <div className="flex bg-black/50 p-1 rounded-2xl border border-white/5 mb-8">
+                    <div className="flex bg-black/50 p-1 rounded-xl sm:rounded-2xl border border-white/5 mb-6 sm:mb-8">
                         <button
                             onClick={() => setMode('login')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${mode === 'login' ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all ${mode === 'login' ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
                         >
-                            <LogIn size={16} />
+                            <LogIn size={14} className="sm:w-4 sm:h-4" />
                             Login
                         </button>
                         <button
                             onClick={() => setMode('signup')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${mode === 'signup' ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all ${mode === 'signup' ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
                         >
-                            <UserPlus size={16} />
+                            <UserPlus size={14} className="sm:w-4 sm:h-4" />
                             Sign Up
                         </button>
                     </div>
@@ -123,14 +123,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-white/50 px-1">Username</label>
+                            <label className="text-xs sm:text-sm font-medium text-white/50 px-1">Username</label>
                             <input
                                 required
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 placeholder={mode === 'login' ? "Enter your username" : "Choose a unique name"}
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-white/10 transition-all text-center text-lg font-semibold"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl px-4 py-3 sm:py-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-white/10 transition-all text-center text-base sm:text-lg font-semibold"
                             />
                         </div>
 
@@ -138,20 +138,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                             <p className="text-red-500 text-sm px-1 text-center">{error}</p>
                         )}
 
-                        <div className="pt-4">
+                        <div className="pt-2 sm:pt-4">
                             <button
                                 disabled={isSubmitting || !username}
                                 type="submit"
-                                className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100"
+                                className="w-full bg-white text-black font-bold py-3.5 sm:py-4 rounded-xl sm:rounded-2xl hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100"
                             >
                                 {isSubmitting ? (
                                     <>
-                                        <Loader2 size={20} className="animate-spin" />
+                                        <Loader2 size={18} className="animate-spin" />
                                         {mode === 'login' ? 'Logging in...' : 'Creating...'}
                                     </>
                                 ) : (
                                     <>
-                                        <Check size={20} />
+                                        <Check size={18} />
                                         {mode === 'login' ? 'Login' : 'Get Started'}
                                     </>
                                 )}

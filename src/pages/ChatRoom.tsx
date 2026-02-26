@@ -385,7 +385,7 @@ const ChatRoom: React.FC = () => {
         <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black flex flex-col">
             <Navbar />
 
-            <main className="flex-1 pt-32 pb-4 px-6 max-w-7xl mx-auto w-full flex flex-col gap-6 overflow-hidden">
+            <main className="flex-1 pt-24 sm:pt-32 pb-4 px-4 sm:px-6 max-w-7xl mx-auto w-full flex flex-col gap-4 sm:gap-6 overflow-hidden">
                 <div className="flex flex-col gap-6 transition-all duration-500 shrink-0">
                     <div className="flex items-center justify-between">
                         <button
@@ -413,21 +413,21 @@ const ChatRoom: React.FC = () => {
                     </div>
 
                     {room && (
-                        <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center overflow-hidden border border-white/10">
+                        <div className="flex items-center gap-4 sm:gap-6">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
                                 {room.Image ? (
                                     <img src={room.Image} alt={room.Name} className="w-full h-full object-cover" />
                                 ) : (
-                                    <MessageSquare className="text-white/70" size={24} />
+                                    <MessageSquare className="text-white/70" size={20} />
                                 )}
                             </div>
-                            <div>
-                                <h1 className="text-4xl font-bold tracking-wide text-white capitalize">{room.Name}</h1>
-                                <p className="text-white/50 mt-1 text-base flex items-center gap-2">
-                                    <span className="uppercase tracking-widest text-[10px] font-bold px-2 py-0.5 bg-white/5 rounded-md border border-white/10">
+                            <div className="min-w-0">
+                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide text-white capitalize truncate">{room.Name}</h1>
+                                <p className="text-white/50 mt-1 text-sm sm:text-base flex items-center gap-2 truncate">
+                                    <span className="uppercase tracking-widest text-[8px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 bg-white/5 rounded-md border border-white/10 shrink-0">
                                         {room.Topic}
                                     </span>
-                                    {room.Description}
+                                    <span className="truncate">{room.Description}</span>
                                 </p>
                             </div>
                         </div>
@@ -435,9 +435,9 @@ const ChatRoom: React.FC = () => {
                 </div>
 
                 {room ? (
-                    <div className="flex-1 flex flex-col bg-neutral-900/10 rounded-[40px] border border-white/5 overflow-hidden backdrop-blur-3xl relative">
+                    <div className="flex-1 flex flex-col bg-neutral-900/10 rounded-[24px] sm:rounded-[40px] border border-white/5 overflow-hidden backdrop-blur-3xl relative">
                         {/* Messages Area */}
-                        <div className="flex-1 p-8 overflow-y-auto flex flex-col gap-4 custom-scrollbar">
+                        <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col gap-3 sm:gap-4 custom-scrollbar">
                             {loadingMessages ? (
                                 <div className="flex-1 flex items-center justify-center">
                                     <Loader2 size={32} className="animate-spin text-white/20" />
@@ -472,18 +472,18 @@ const ChatRoom: React.FC = () => {
                                                 key={`${msg.ID}-${index}`}
                                                 className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} ${msg.IsOptimistic ? 'opacity-60' : 'opacity-100'} transition-opacity`}
                                             >
-                                                <div className={`max-w-[80%] rounded-2xl px-6 py-3 ${isOwnMessage
+                                                <div className={`max-w-[90%] sm:max-w-[80%] rounded-xl sm:rounded-2xl px-4 sm:px-6 py-2 sm:py-3 ${isOwnMessage
                                                     ? 'bg-white text-black rounded-tr-none'
                                                     : 'bg-white/5 text-white rounded-tl-none border border-white/10'
                                                     }`}>
                                                     {!isOwnMessage && (
-                                                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">
+                                                        <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">
                                                             {msg.UserName}
                                                         </p>
                                                     )}
-                                                    <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">{msg.Content}</p>
+                                                    <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap wrap-break-word font-medium [word-break:break-word]">{msg.Content}</p>
                                                 </div>
-                                                <p className="text-[9px] text-white/20 mt-1 uppercase font-medium">
+                                                <p className="text-[8px] sm:text-[9px] text-white/20 mt-1 uppercase font-medium">
                                                     {msg.IsOptimistic ? 'Sending...' : new Date(msg.CreatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </p>
                                             </div>
@@ -506,13 +506,13 @@ const ChatRoom: React.FC = () => {
                         </div>
 
                         {/* Input Area */}
-                        <div className="p-6 pt-2 bg-gradient-to-t from-black/20 to-transparent shrink-0">
+                        <div className="p-3 sm:p-6 pt-1 sm:pt-2 bg-gradient-to-t from-black/20 to-transparent shrink-0">
                             <form
                                 onSubmit={handleSendMessage}
-                                className="relative flex items-center gap-4 bg-white/5 border border-white/10 rounded-full p-2 pl-6 focus-within:border-white/20 transition-all hover:bg-white/[0.07]"
+                                className="relative flex items-center gap-2 sm:gap-4 bg-white/5 border border-white/10 rounded-full p-1.5 sm:p-2 pl-4 sm:pl-6 focus-within:border-white/20 transition-all hover:bg-white/[0.07]"
                             >
-                                <button type="button" className="text-white/30 hover:text-white transition-colors">
-                                    <Paperclip size={20} />
+                                <button type="button" className="text-white/30 hover:text-white transition-colors shrink-0">
+                                    <Paperclip size={18} className="sm:w-5 sm:h-5" />
                                 </button>
 
                                 <input
@@ -520,22 +520,22 @@ const ChatRoom: React.FC = () => {
                                     placeholder={`Message ${room?.Name || '...'}`}
                                     value={messageInput}
                                     onChange={handleInputChange}
-                                    className="flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 py-3"
+                                    className="flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 py-2 sm:py-3 text-sm sm:text-base min-w-0"
                                 />
 
-                                <div className="flex items-center gap-2">
-                                    <button type="button" className="text-white/30 hover:text-white transition-colors">
-                                        <Smile size={20} />
+                                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                                    <button type="button" className="hidden xs:block text-white/30 hover:text-white transition-colors">
+                                        <Smile size={18} className="sm:w-5 sm:h-5" />
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={!messageInput.trim()}
-                                        className={`p-3 rounded-full transition-all flex items-center justify-center ${messageInput.trim()
+                                        className={`p-2.5 sm:p-3 rounded-full transition-all flex items-center justify-center ${messageInput.trim()
                                             ? 'bg-white text-black hover:scale-105 active:scale-95'
                                             : 'bg-white/5 text-white/10'
                                             }`}
                                     >
-                                        <Send size={18} fill={messageInput.trim() ? "currentColor" : "none"} />
+                                        <Send size={16} className="sm:w-4.5 sm:h-4.5" fill={messageInput.trim() ? "currentColor" : "none"} />
                                     </button>
                                 </div>
                             </form>
@@ -551,31 +551,31 @@ const ChatRoom: React.FC = () => {
 
             {/* Leave Confirmation Modal */}
             {showLeaveConfirm && (
-                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md transition-all duration-300">
-                    <div className="bg-neutral-900 border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl scale-100 animate-in fade-in zoom-in duration-200">
-                        <div className="flex flex-col items-center text-center gap-6">
-                            <div className="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 border border-rose-500/20">
-                                <AlertTriangle size={32} />
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-md transition-all duration-300">
+                    <div className="bg-neutral-900 border border-white/10 rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 max-w-sm w-full shadow-2xl scale-100 animate-in fade-in zoom-in duration-200">
+                        <div className="flex flex-col items-center text-center gap-4 sm:gap-6">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 border border-rose-500/20">
+                                <AlertTriangle size={24} className="sm:w-8 sm:h-8" />
                             </div>
 
                             <div className="space-y-2">
-                                <h3 className="text-2xl font-bold text-white">Leave Room?</h3>
-                                <p className="text-white/40 text-sm leading-relaxed">
+                                <h3 className="text-xl sm:text-2xl font-bold text-white">Leave Room?</h3>
+                                <p className="text-white/40 text-xs sm:text-sm leading-relaxed">
                                     Are you sure you want to leave <span className="text-white font-medium">{room?.Name}</span>?
                                     You'll need an invite or find it in the list to join back.
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 w-full mt-4">
+                            <div className="grid grid-cols-2 gap-3 w-full mt-2 sm:mt-4">
                                 <button
                                     onClick={() => setShowLeaveConfirm(false)}
-                                    className="px-6 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-bold text-xs uppercase tracking-widest transition-all border border-white/5"
+                                    className="px-4 py-3 sm:px-6 sm:py-3.5 rounded-xl sm:rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-all border border-white/5"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={confirmLeave}
-                                    className="px-6 py-3.5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-rose-500/20 active:scale-95"
+                                    className="px-4 py-3 sm:px-6 sm:py-3.5 rounded-xl sm:rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-all shadow-lg shadow-rose-500/20 active:scale-95"
                                 >
                                     Leave
                                 </button>
