@@ -4,7 +4,7 @@ import { ArrowLeft, MessageSquare, Send, Paperclip, Smile, Loader2, Circle, LogO
 import Navbar from '../components/Navbar';
 import { useRooms } from '../context/RoomContext';
 import { useAuth } from '../context/AuthContext';
-import apiClient from '../lib/api';
+import apiClient, { BASE_URL } from '../lib/api';
 
 interface Message {
     ID: number | string;
@@ -84,8 +84,9 @@ const ChatRoom: React.FC = () => {
     useEffect(() => {
         if (!id || !user) return;
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//localhost:8080/api/v1/rooms/ws/${id}`;
+        const apiHost = BASE_URL.replace(/^https?:\/\//, '').split('/')[0];
+        const wsProtocol = BASE_URL.startsWith('https') ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${apiHost}/api/v1/rooms/ws/${id}`;
 
         const ws = new WebSocket(wsUrl);
 
