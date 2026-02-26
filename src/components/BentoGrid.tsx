@@ -1,4 +1,4 @@
-import { MessageSquare, Shield, Zap, Globe, Users, ArrowUpRight } from 'lucide-react';
+import { MessageSquare, Shield, Zap, Globe, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { motion } from 'motion/react';
 import ElectricBorder from './ElectricBorder';
