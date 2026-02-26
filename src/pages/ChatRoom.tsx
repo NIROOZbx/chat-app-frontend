@@ -116,13 +116,20 @@ const ChatRoom: React.FC = () => {
 
                 switch (data.type) {
                     case 'message.new':
+                        const mid = data.MessageID || data.message_id || data.id;
+                        const rid = data.RoomID || data.room_id;
+                        const uid = data.UserID || data.user_id;
+                        const uname = data.UserName || data.user_name;
+                        const content = data.Content || data.content;
+                        const sentAt = data.SentAt || data.sent_at || data.created_at;
+
                         const newMessage: Message = {
-                            ID: data.MessageID,
-                            RoomID: data.RoomID,
-                            UserID: data.UserID,
-                            UserName: data.UserName,
-                            Content: data.Content,
-                            CreatedAt: data.SentAt
+                            ID: mid,
+                            RoomID: rid,
+                            UserID: uid,
+                            UserName: uname,
+                            Content: content,
+                            CreatedAt: sentAt
                         };
 
                         setMessages(prev => {
@@ -166,83 +173,98 @@ const ChatRoom: React.FC = () => {
                         break;
 
                     case 'room.user_joined':
+                        const juid = data.UserID || data.user_id;
+                        const juname = data.UserName || data.user_name;
+                        const jrid = data.RoomID || data.room_id;
+
                         // Don't show system message for SELF
-                        if (String(data.UserID) === String(user?.ID)) return;
+                        if (!juid || !user?.ID || String(juid) === String(user.ID)) return;
 
                         console.log('User joined event data:', data);
                         const joinMsg: Message = {
-                            ID: `join-${data.UserID}-${Date.now()}`,
-                            RoomID: data.RoomID,
+                            ID: `join-${juid}-${Date.now()}`,
+                            RoomID: jrid,
                             UserName: 'System',
-                            Content: `${data.UserName || 'A user'} joined the room`,
+                            Content: `${juname || 'A user'} joined the room`,
                             CreatedAt: new Date().toISOString(),
                             IsSystem: true
                         };
                         setMessages(prev => [...prev, joinMsg]);
-                        setOnlineUsers(prev => new Set([...prev, data.UserID]));
+                        setOnlineUsers(prev => new Set([...prev, juid]));
                         break;
 
                     case 'room.user_left':
+                        const luid = data.UserID || data.user_id;
+                        const luname = data.UserName || data.user_name;
+                        const lrid = data.RoomID || data.room_id;
+
                         // Don't show system message for SELF
-                        if (String(data.UserID) === String(user?.ID)) return;
+                        if (!luid || !user?.ID || String(luid) === String(user.ID)) return;
 
                         const leaveMsg: Message = {
-                            ID: `leave-${data.UserID}-${Date.now()}`,
-                            RoomID: data.RoomID,
+                            ID: `leave-${luid}-${Date.now()}`,
+                            RoomID: lrid,
                             UserName: 'System',
-                            Content: `${data.UserName} left the room`,
+                            Content: `${luname || 'A user'} left the room`,
                             CreatedAt: new Date().toISOString(),
                             IsSystem: true
                         };
                         setMessages(prev => [...prev, leaveMsg]);
                         setOnlineUsers(prev => {
                             const next = new Set(prev);
-                            next.delete(data.UserID);
+                            next.delete(luid);
                             return next;
                         });
                         break;
 
                     case 'room.typing':
+                        const tuid = data.UserID || data.user_id;
+                        const tuname = data.UserName || data.user_name || 'Someone';
+
                         // Don't show typing indicator for SELF
-                        if (String(data.UserID) === String(user?.ID)) return;
+                        if (!tuid || !user?.ID || String(tuid) === String(user.ID)) return;
 
                         setTypingUsers(prev => ({
                             ...prev,
-                            [data.UserID]: data.UserName
+                            [tuid]: tuname
                         }));
 
-                        if (userTypingTimeouts.current[data.UserID]) {
-                            clearTimeout(userTypingTimeouts.current[data.UserID]);
+                        if (userTypingTimeouts.current[tuid]) {
+                            clearTimeout(userTypingTimeouts.current[tuid]);
                         }
 
-                        userTypingTimeouts.current[data.UserID] = setTimeout(() => {
+                        userTypingTimeouts.current[tuid] = setTimeout(() => {
                             setTypingUsers(prev => {
                                 const next = { ...prev };
-                                delete next[data.UserID];
+                                delete next[tuid];
                                 return next;
                             });
                         }, 3000);
                         break;
 
                     case 'user.online':
+                        const ouid = data.UserID || data.user_id;
+                        const ouname = data.UserName || data.user_name;
+                        const orid = data.RoomID || data.room_id;
+
                         // Don't show system message for SELF
-                        if (String(data.UserID) === String(user?.ID)) {
-                            setOnlineUsers(prev => new Set([...prev, data.UserID]));
+                        if (String(ouid) === String(user?.ID)) {
+                            setOnlineUsers(prev => new Set([...prev, ouid]));
                             return;
                         }
 
                         setOnlineUsers(prev => {
-                            if (prev.has(data.UserID)) return prev;
+                            if (prev.has(ouid)) return prev;
 
                             const next = new Set(prev);
-                            next.add(data.UserID);
+                            next.add(ouid);
 
                             // Add system message ONLY if they were newly added to the set
                             const onlineMsg: Message = {
-                                ID: `online-${data.UserID}-${Date.now()}`,
-                                RoomID: data.RoomID,
+                                ID: `online-${ouid}-${Date.now()}`,
+                                RoomID: orid,
                                 UserName: 'System',
-                                Content: `${data.UserName || 'A user'} is now online`,
+                                Content: `${ouname || 'A user'} is now online`,
                                 CreatedAt: new Date().toISOString(),
                                 IsSystem: true
                             };
@@ -253,9 +275,10 @@ const ChatRoom: React.FC = () => {
                         break;
 
                     case 'user.offline':
+                        const offuid = data.UserID || data.user_id;
                         setOnlineUsers(prev => {
                             const next = new Set(prev);
-                            next.delete(data.user_id);
+                            next.delete(offuid);
                             return next;
                         });
                         break;
