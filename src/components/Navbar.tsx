@@ -59,7 +59,7 @@ const Navbar = () => {
         <nav className={`fixed left-0 w-full z-100 px-6 transition-all duration-300 ${scrolled ? 'py-4' : 'py-6'}`}>
             <div className="max-w-7xl mx-auto flex items-center justify-between">
                 {/* Spacer / Logo Area */}
-                <div className="flex-1 hidden md:block">
+                <div className="flex-1">
                     {/* Add logo here if needed */}
                 </div>
 
@@ -89,7 +89,7 @@ const Navbar = () => {
                 </div>
 
                 {/* User Profile Section */}
-                <div className="flex-1 flex justify-end">
+                <div className="flex-1 flex justify-end min-w-0">
                     {user && (
                         <div className="flex items-center gap-2 sm:gap-4 cursor-pointer group">
                             <div className="hidden sm:flex flex-col items-end">
