@@ -117,12 +117,12 @@ const ChatRoom: React.FC = () => {
                 switch (data.type) {
                     case 'message.new':
                         const newMessage: Message = {
-                            ID: data.message_id,
-                            RoomID: data.room_id,
-                            UserID: data.user_id,
-                            UserName: data.user_name,
-                            Content: data.content,
-                            CreatedAt: data.sent_at
+                            ID: data.MessageID,
+                            RoomID: data.RoomID,
+                            UserID: data.UserID,
+                            UserName: data.UserName,
+                            Content: data.Content,
+                            CreatedAt: data.SentAt
                         };
 
                         setMessages(prev => {
@@ -166,76 +166,83 @@ const ChatRoom: React.FC = () => {
                         break;
 
                     case 'room.user_joined':
+                        // Don't show system message for SELF
+                        if (String(data.UserID) === String(user?.ID)) return;
+
                         console.log('User joined event data:', data);
                         const joinMsg: Message = {
-                            ID: `join-${data.user_id}-${Date.now()}`,
-                            RoomID: data.room_id,
+                            ID: `join-${data.UserID}-${Date.now()}`,
+                            RoomID: data.RoomID,
                             UserName: 'System',
-                            Content: `${data.user_name || 'A user'} joined the room`,
+                            Content: `${data.UserName || 'A user'} joined the room`,
                             CreatedAt: new Date().toISOString(),
                             IsSystem: true
                         };
                         setMessages(prev => [...prev, joinMsg]);
-                        setOnlineUsers(prev => new Set([...prev, data.user_id]));
+                        setOnlineUsers(prev => new Set([...prev, data.UserID]));
                         break;
 
                     case 'room.user_left':
+                        // Don't show system message for SELF
+                        if (String(data.UserID) === String(user?.ID)) return;
+
                         const leaveMsg: Message = {
-                            ID: `leave-${data.user_id}-${Date.now()}`,
-                            RoomID: data.room_id,
+                            ID: `leave-${data.UserID}-${Date.now()}`,
+                            RoomID: data.RoomID,
                             UserName: 'System',
-                            Content: `${data.user_name} left the room`,
+                            Content: `${data.UserName} left the room`,
                             CreatedAt: new Date().toISOString(),
                             IsSystem: true
                         };
                         setMessages(prev => [...prev, leaveMsg]);
                         setOnlineUsers(prev => {
                             const next = new Set(prev);
-                            next.delete(data.user_id);
+                            next.delete(data.UserID);
                             return next;
                         });
                         break;
 
                     case 'room.typing':
-                        if (data.user_id === user.ID) return;
+                        // Don't show typing indicator for SELF
+                        if (String(data.UserID) === String(user?.ID)) return;
 
                         setTypingUsers(prev => ({
                             ...prev,
-                            [data.user_id]: data.user_name
+                            [data.UserID]: data.UserName
                         }));
 
-                        if (userTypingTimeouts.current[data.user_id]) {
-                            clearTimeout(userTypingTimeouts.current[data.user_id]);
+                        if (userTypingTimeouts.current[data.UserID]) {
+                            clearTimeout(userTypingTimeouts.current[data.UserID]);
                         }
 
-                        userTypingTimeouts.current[data.user_id] = setTimeout(() => {
+                        userTypingTimeouts.current[data.UserID] = setTimeout(() => {
                             setTypingUsers(prev => {
                                 const next = { ...prev };
-                                delete next[data.user_id];
+                                delete next[data.UserID];
                                 return next;
                             });
                         }, 3000);
                         break;
 
                     case 'user.online':
-                        // Deduplicate: only show system message if user wasn't already online
-                        if (data.user_id === user.ID) {
-                            setOnlineUsers(prev => new Set([...prev, data.user_id]));
+                        // Don't show system message for SELF
+                        if (String(data.UserID) === String(user?.ID)) {
+                            setOnlineUsers(prev => new Set([...prev, data.UserID]));
                             return;
                         }
 
                         setOnlineUsers(prev => {
-                            if (prev.has(data.user_id)) return prev;
+                            if (prev.has(data.UserID)) return prev;
 
                             const next = new Set(prev);
-                            next.add(data.user_id);
+                            next.add(data.UserID);
 
                             // Add system message ONLY if they were newly added to the set
                             const onlineMsg: Message = {
-                                ID: `online-${data.user_id}-${Date.now()}`,
-                                RoomID: data.room_id,
+                                ID: `online-${data.UserID}-${Date.now()}`,
+                                RoomID: data.RoomID,
                                 UserName: 'System',
-                                Content: `${data.user_name || 'A user'} is now online`,
+                                Content: `${data.UserName || 'A user'} is now online`,
                                 CreatedAt: new Date().toISOString(),
                                 IsSystem: true
                             };
