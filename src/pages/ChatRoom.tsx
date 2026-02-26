@@ -84,9 +84,19 @@ const ChatRoom: React.FC = () => {
     useEffect(() => {
         if (!id || !user) return;
 
-        const apiHost = BASE_URL.replace(/^https?:\/\//, '').split('/')[0];
-        const wsProtocol = BASE_URL.startsWith('https') ? 'wss:' : 'ws:';
-        const wsUrl = `${wsProtocol}//${apiHost}/api/v1/rooms/ws/${id}`;
+        const wsBaseUrl = import.meta.env.VITE_WS_URL;
+        let wsUrl;
+
+        if (wsBaseUrl) {
+            // Use the provided base and append the room ID
+            const base = wsBaseUrl.endsWith('/') ? wsBaseUrl.slice(0, -1) : wsBaseUrl;
+            wsUrl = `${base}/${id}`;
+        } else {
+            // Fallback to dynamic host detection
+            const apiHost = BASE_URL.replace(/^https?:\/\//, '').split('/')[0];
+            const wsProtocol = BASE_URL.startsWith('https') ? 'wss:' : 'ws:';
+            wsUrl = `${wsProtocol}//${apiHost}/api/v1/rooms/ws/${id}`;
+        }
 
         const ws = new WebSocket(wsUrl);
 
