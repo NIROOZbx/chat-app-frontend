@@ -98,8 +98,8 @@ const Navbar = () => {
                                 </p>
                                 <div className="flex items-center gap-1.5 mt-1.5">
                                     <div className="w-1 h-1 md:w-1.5 md:h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                                    <p className="hidden xs:block text-[8px] md:text-[10px] text-white/40 font-medium uppercase tracking-widest leading-none">
-                                        Online
+                                    <p className=" xs:block text-[8px] md:text-[8px] text-white font-medium uppercase tracking-widest leading-none">
+                                        active
                                     </p>
                                 </div>
                             </div>

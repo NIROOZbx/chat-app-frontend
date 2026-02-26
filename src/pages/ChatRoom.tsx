@@ -426,13 +426,13 @@ const ChatRoom: React.FC = () => {
                     <div className="flex items-center justify-between">
                         <button
                             onClick={() => navigate('/rooms')}
-                            className="flex items-center gap-2 text-white/50 hover:text-white transition-colors group w-fit"
+                            className="flex items-center gap-2 text-white/50 hover:text-white transition-colors group w-fit shrink-0"
                         >
                             <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                            Back to Rooms
+                            <span className="hidden sm:inline">Back to Rooms</span>
                         </button>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                             <button
                                 onClick={handleManualRefresh}
                                 disabled={isRefreshing}
@@ -441,20 +441,18 @@ const ChatRoom: React.FC = () => {
                             >
                                 <RefreshCw size={16} />
                             </button>
-                        </div>
 
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 text-xs text-white/30 bg-white/5 px-4 py-1.5 rounded-full border border-white/10">
+                            <div className="flex items-center gap-2 text-[10px] sm:text-xs text-emerald-400 font-bold uppercase tracking-widest bg-emerald-500/10 px-3 sm:px-4 py-1.5 rounded-full border border-emerald-500/10">
                                 <Circle size={8} className="fill-emerald-500 text-emerald-500 animate-pulse" />
-                                {Math.max(onlineUsers.size, room?.online_count || 1)} online
+                                {Math.max(onlineUsers.size, room?.online_count || 1)} <span>Online</span>
                             </div>
 
                             <button
                                 onClick={handleLeaveRoom}
-                                className="flex items-center gap-2 text-xs text-rose-400 font-bold uppercase tracking-widest bg-rose-500/10 hover:bg-rose-500/20 px-4 py-1.5 rounded-full border border-rose-500/10 transition-all hover:scale-105"
+                                className="flex items-center gap-2 text-xs text-rose-400 font-bold uppercase tracking-widest bg-rose-500/10 hover:bg-rose-500/20 px-3 sm:px-4 py-1.5 rounded-full border border-rose-500/10 transition-all hover:scale-105"
                             >
                                 <LogOut size={14} />
-                                Leave Room
+                                <span className="hidden sm:inline">Leave Room</span>
                             </button>
                         </div>
                     </div>
@@ -474,7 +472,7 @@ const ChatRoom: React.FC = () => {
                                     <span className="uppercase tracking-widest text-[8px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 bg-white/5 rounded-md border border-white/10 shrink-0">
                                         {room.Topic}
                                     </span>
-                                    <span className="truncate">{room.Description}</span>
+                                    <span className="truncate hidden sm:inline">{room.Description}</span>
                                 </p>
                             </div>
                         </div>
