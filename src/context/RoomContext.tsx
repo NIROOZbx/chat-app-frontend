@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 import apiClient from '../lib/api';
 import { useAuth } from './AuthContext';
 
-interface Room {
+export interface Room {
     ID: number;
     Name: string;
     Description: string;
@@ -14,6 +14,7 @@ interface Room {
     InviteCode?: string | null;
     CreatedAt: string;
     UpdatedAt: string;
+    online_count?: number;
 }
 
 interface RoomContextType {
@@ -25,6 +26,7 @@ interface RoomContextType {
     refreshAll: () => Promise<void>;
     joinRoom: (roomId: number) => Promise<void>;
     leaveRoom: (roomId: number) => Promise<void>;
+    fetchRoomById: (id: number) => Promise<Room | null>;
 }
 
 const RoomContext = createContext<RoomContextType | undefined>(undefined);
@@ -102,6 +104,21 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
+    const fetchRoomById = async (id: number): Promise<Room | null> => {
+        if (!user) return null;
+        try {
+            const response = await apiClient.get(`/rooms/${id}`);
+            if (response.data.success) {
+                const { room, online_count } = response.data.data;
+                return { ...room, online_count };
+            }
+            return null;
+        } catch (error) {
+            console.error('Error fetching room details:', error);
+            return null;
+        }
+    };
+
     const leaveRoom = async (roomId: number) => {
         setLoading(true);
         try {
@@ -116,8 +133,10 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     useEffect(() => {
-        refreshAll();
-    }, []);
+        if (user) {
+            refreshAll();
+        }
+    }, [user]);
 
     return (
         <RoomContext.Provider value={{
@@ -128,7 +147,8 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             fetchJoinedRooms,
             refreshAll,
             joinRoom,
-            leaveRoom
+            leaveRoom,
+            fetchRoomById
         }}>
             {children}
         </RoomContext.Provider>

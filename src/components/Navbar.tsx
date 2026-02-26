@@ -56,15 +56,15 @@ const Navbar = () => {
     };
 
     return (
-        <nav className={`fixed left-0 w-full z-100 px-6 transition-all duration-300 ${scrolled ? 'py-4' : 'py-6'}`}>
+        <nav className={`fixed left-0 w-full z-100 px-3 sm:px-6 transition-all duration-300 ${scrolled ? 'py-4' : 'py-6'}`}>
             <div className="max-w-7xl mx-auto flex items-center justify-between">
                 {/* Spacer / Logo Area */}
-                <div className="flex-1">
+                <div className="w-8 sm:flex-1">
                     {/* Add logo here if needed */}
                 </div>
 
                 {/* Main Navigation Pill */}
-                <div className={`flex gap-4 sm:gap-8 md:gap-12 px-4 sm:px-10 py-3 rounded-full transition-all duration-300 overflow-x-auto no-scrollbar ${scrolled ? 'bg-black/40 backdrop-blur-md border border-white/10 shadow-lg' : 'bg-transparent border border-transparent'}`}>
+                <div className={`flex gap-2 sm:gap-8 md:gap-12 px-3 sm:px-10 py-3 rounded-full transition-all duration-300 overflow-x-auto no-scrollbar ${scrolled ? 'bg-black/40 backdrop-blur-md border border-white/10 shadow-lg' : 'bg-transparent border border-transparent'}`}>
                     {navs.map((nav, index) => {
                         const isRelay = nav === "Relay";
                         const isActive = (nav === "Groups" && location.pathname === '/rooms') ||
@@ -77,7 +77,7 @@ const Navbar = () => {
                                 className={`
                                     cursor-pointer select-none uppercase transition-all duration-300 shrink-0
                                     ${isRelay
-                                        ? "text-xl md:text-2xl font-bold tracking-wide text-white"
+                                        ? "text-lg md:text-2xl font-bold tracking-wide text-white"
                                         : `text-[10px] md:text-sm font-light tracking-wide mt-1.5 ${isActive ? 'text-white font-normal' : 'text-white/70 hover:text-white'}`}
                                 `}
                                 onClick={() => handleNavClick(nav, index)}
@@ -89,7 +89,7 @@ const Navbar = () => {
                 </div>
 
                 {/* User Profile Section */}
-                <div className="flex-1 flex justify-end min-w-0">
+                <div className="w-8 sm:flex-1 flex justify-end min-w-0">
                     {user && (
                         <div className="flex items-center gap-2 sm:gap-4 cursor-pointer group">
                             <div className="hidden sm:flex flex-col items-end">
@@ -98,7 +98,7 @@ const Navbar = () => {
                                 </p>
                                 <div className="flex items-center gap-1.5 mt-1.5">
                                     <div className="w-1 h-1 md:w-1.5 md:h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                                    <p className="text-[8px] md:text-[10px] text-white/40 font-medium uppercase tracking-widest leading-none">
+                                    <p className="hidden xs:block text-[8px] md:text-[10px] text-white/40 font-medium uppercase tracking-widest leading-none">
                                         Online
                                     </p>
                                 </div>

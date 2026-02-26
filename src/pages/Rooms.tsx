@@ -170,6 +170,12 @@ const Rooms = () => {
                                             <span className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white/50 border border-white/10">
                                                 {room.IsPrivate ? 'Private' : 'Public'}
                                             </span>
+                                            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                                                <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" />
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+                                                    {room.online_count || 0} Online
+                                                </span>
+                                            </div>
                                             <span className="text-[10px] font-medium text-white/30">
                                                 {room.MaxMembers} max
                                             </span>

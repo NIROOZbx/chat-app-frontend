@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Send, Paperclip, Smile, Loader2, Circle, LogOut, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Send, Paperclip, Smile, Loader2, Circle, LogOut, AlertTriangle, RefreshCw } from 'lucide-react';
 import Navbar from '../components/Navbar';
-import { useRooms } from '../context/RoomContext';
+import { useRooms, type Room } from '../context/RoomContext';
 import { useAuth } from '../context/AuthContext';
 import apiClient, { BASE_URL } from '../lib/api';
 
@@ -19,10 +19,11 @@ interface Message {
 
 const ChatRoom: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
-    const { joinedRooms, loading: loadingRooms, leaveRoom } = useRooms();
+    const { joinedRooms, loading: loadingRooms, leaveRoom, fetchRoomById } = useRooms();
     const { user, isInitializing: authLoading } = useAuth();
+    const navigate = useNavigate();
 
+    const [room, setRoom] = useState<Room | null>(null);
     const [messageInput, setMessageInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
     const [loadingMessages, setLoadingMessages] = useState(true);
@@ -32,13 +33,23 @@ const ChatRoom: React.FC = () => {
     const [isLeaving, setIsLeaving] = useState(false);
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
     const [lastTyped, setLastTyped] = useState(0);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const userTypingTimeouts = useRef<Record<number, any>>({});
     const notifiedUsers = useRef<Set<number>>(new Set());
 
-    // Find the room in joined rooms
-    const room = joinedRooms.find(r => r.ID === Number(id));
+    // Use ID from params
+    const roomId = Number(id);
+
+    // Also keep local room state in sync with joinedRooms if needed, 
+    // but better to fetch fresh for online_count
+    useEffect(() => {
+        const found = joinedRooms.find(r => r.ID === roomId);
+        if (found && !room) {
+            setRoom(found);
+        }
+    }, [joinedRooms, roomId, room]);
 
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,15 +59,24 @@ const ChatRoom: React.FC = () => {
         scrollToBottom();
     }, [messages, scrollToBottom]);
 
-    // Fetch message history
+    // Initial messages and room details fetch
     useEffect(() => {
         if (!id) return;
 
-        // Reset state on room change
+        const syncRoomDetails = async () => {
+            const details = await fetchRoomById(Number(id));
+            if (details) {
+                setRoom(details);
+            }
+        };
+
+        syncRoomDetails();
         setMessages([]);
         setLoadingMessages(true);
 
-        const fetchMessages = async () => {
+        const fetchMessages = async (showLoader = true) => {
+            if (showLoader) setLoadingMessages(true);
+            else setIsRefreshing(true);
             try {
                 const response = await apiClient.get(`/rooms/${id}/messages?limit=50&page=1`);
                 if (response.data.success) {
@@ -68,22 +88,44 @@ const ChatRoom: React.FC = () => {
                         Content: msg.Content || msg.content,
                         CreatedAt: msg.CreatedAt || msg.created_at || msg.SentAt
                     }));
-                    // Functional update to avoid losing live messages received while fetching
-                    setMessages(prev => {
-                        const history = mappedMessages.reverse();
-                        const live = prev.filter(m => !history.some((h: Message) => h.ID === m.ID));
-                        return [...history, ...live];
-                    });
+                    setMessages(mappedMessages.reverse());
                 }
             } catch (err) {
                 console.error('Error fetching messages:', err);
             } finally {
                 setLoadingMessages(false);
+                setIsRefreshing(false);
             }
         };
 
         fetchMessages();
+
+        // Expose fetchMessages to a ref if needed or just use the local function
+        // For simplicity, I'll redefine it for the refresh button or move it out
     }, [id]);
+
+    const handleManualRefresh = async () => {
+        if (!id || isRefreshing) return;
+        setIsRefreshing(true);
+        try {
+            const response = await apiClient.get(`/rooms/${id}/messages?limit=50&page=1`);
+            if (response.data.success) {
+                const mappedMessages = response.data.data.map((msg: any) => ({
+                    ID: msg.ID || msg.id || msg.MessageID || msg.message_id,
+                    RoomID: msg.RoomID || msg.room_id,
+                    UserID: msg.UserID || msg.user_id,
+                    UserName: msg.UserName || msg.user_name || msg.Username || 'User',
+                    Content: msg.Content || msg.content,
+                    CreatedAt: msg.CreatedAt || msg.created_at || msg.SentAt
+                }));
+                setMessages(mappedMessages.reverse());
+            }
+        } catch (err) {
+            console.error('Manual refresh failed:', err);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
 
     // WebSocket connection for presence and typing
     useEffect(() => {
@@ -215,16 +257,34 @@ const ChatRoom: React.FC = () => {
                         case 'room.user_left':
                         case 'user.offline':
                             const luid = data.UserID || data.user_id;
+                            const luname = data.UserName || data.user_name || 'A user';
+                            const lrid = data.RoomID || data.room_id || Number(id);
+
                             if (!luid) return;
                             const leftIdNum = Number(luid);
 
+                            // Reset notification flag so they can trigger "is now online" again if they return
                             notifiedUsers.current.delete(leftIdNum);
+
                             setOnlineUsers(prev => {
                                 if (!prev.has(leftIdNum)) return prev;
                                 const next = new Set(prev);
                                 next.delete(leftIdNum);
                                 return next;
                             });
+
+                            // Only show leave message for OTHERS
+                            if (leftIdNum !== user?.ID) {
+                                const offlineMsg: Message = {
+                                    ID: `offline-${leftIdNum}-${Date.now()}`,
+                                    RoomID: lrid,
+                                    UserName: 'System',
+                                    Content: `${luname} has left the room`,
+                                    CreatedAt: new Date().toISOString(),
+                                    IsSystem: true
+                                };
+                                setMessages(m => [...m, offlineMsg]);
+                            }
                             break;
 
                         case 'room.typing':
@@ -345,7 +405,8 @@ const ChatRoom: React.FC = () => {
 
     // Only show full-page loader if we don't have the room data yet AND we are fetching joined rooms
     // Or if we are in the middle of leaving a room
-    if ((loadingRooms && !room) || (authLoading && !user) || isLeaving) {
+    // On refresh, we wait for both auth and specific room details to be certain
+    if (((loadingRooms || authLoading) && !room) || isLeaving) {
         return (
             <div className="min-h-screen bg-black text-white flex flex-col">
                 <Navbar />
@@ -371,10 +432,21 @@ const ChatRoom: React.FC = () => {
                             Back to Rooms
                         </button>
 
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleManualRefresh}
+                                disabled={isRefreshing}
+                                className={`p-2 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white transition-all ${isRefreshing ? 'animate-spin opacity-50' : 'hover:scale-110'}`}
+                                title="Refresh Messages"
+                            >
+                                <RefreshCw size={16} />
+                            </button>
+                        </div>
+
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2 text-xs text-white/30 bg-white/5 px-4 py-1.5 rounded-full border border-white/10">
                                 <Circle size={8} className="fill-emerald-500 text-emerald-500 animate-pulse" />
-                                {onlineUsers.size || 1} online
+                                {Math.max(onlineUsers.size, room?.online_count || 1)} online
                             </div>
 
                             <button
