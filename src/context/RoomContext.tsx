@@ -12,9 +12,9 @@ export interface Room {
     MaxMembers: number;
     Image?: string;
     InviteCode?: string | null;
-    CreatedAt: string;
     UpdatedAt: string;
     online_count?: number;
+    user_role?: string;
 }
 
 interface RoomContextType {
@@ -109,8 +109,8 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
             const response = await apiClient.get(`/rooms/${id}`);
             if (response.data.success) {
-                const { room, online_count } = response.data.data;
-                return { ...room, online_count };
+                const { room, online_count, user_role } = response.data.data;
+                return { ...room, online_count, user_role };
             }
             return null;
         } catch (error) {

@@ -40,6 +40,7 @@ const ChatRoom: React.FC = () => {
     const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
     const [showMenu, setShowMenu] = useState(false);
     const [copiedLink, setCopiedLink] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const userTypingTimeouts = useRef<Record<number, any>>({});
@@ -408,6 +409,20 @@ const ChatRoom: React.FC = () => {
         }
     };
 
+    const handleDeleteRoom = async () => {
+        if (!id || !window.confirm(`Are you sure you want to completely delete ${room?.Name}? This action cannot be undone.`)) return;
+        setIsDeleting(true);
+        try {
+            await apiClient.delete(`/rooms/${id}`);
+            navigate('/rooms');
+        } catch (err) {
+            console.error('Failed to delete room:', err);
+            alert('Failed to delete room.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setMessageInput(e.target.value);
         const now = Date.now();
@@ -423,9 +438,9 @@ const ChatRoom: React.FC = () => {
     };
 
     // Only show full-page loader if we don't have the room data yet AND we are fetching joined rooms
-    // Or if we are in the middle of leaving a room
+    // Or if we are in the middle of leaving a room or deleting a room
     // On refresh, we wait for both auth and specific room details to be certain
-    if (((loadingRooms || authLoading) && !room) || isLeaving) {
+    if (((loadingRooms || authLoading) && !room) || isLeaving || isDeleting) {
         return (
             <div className="min-h-screen bg-black text-white flex flex-col">
                 <Navbar />
@@ -474,7 +489,7 @@ const ChatRoom: React.FC = () => {
                                 <span className="hidden sm:inline">Leave Room</span>
                             </button>
 
-                            {room?.IsPrivate && (
+                            {(room?.IsPrivate || room?.user_role === 'admin') && (
                                 <div className="relative">
                                     <button
                                         onClick={() => setShowMenu(!showMenu)}
@@ -490,21 +505,34 @@ const ChatRoom: React.FC = () => {
                                                 onClick={() => setShowMenu(false)}
                                             />
                                             <div className="absolute right-0 top-full mt-2 w-48 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50">
-                                                <button
-                                                    onClick={() => {
-                                                        const link = `${window.location.origin}/join/${room.InviteCode}`;
-                                                        navigator.clipboard.writeText(link);
-                                                        setCopiedLink(true);
-                                                        setTimeout(() => {
-                                                            setCopiedLink(false);
+                                                {room.IsPrivate && (
+                                                    <button
+                                                        onClick={() => {
+                                                            const link = `${window.location.origin}/join/${room.InviteCode}`;
+                                                            navigator.clipboard.writeText(link);
+                                                            setCopiedLink(true);
+                                                            setTimeout(() => {
+                                                                setCopiedLink(false);
+                                                                setShowMenu(false);
+                                                            }, 2000);
+                                                        }}
+                                                        className="w-full flex items-center justify-between px-4 py-3 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors"
+                                                    >
+                                                        <span>Copy Invite Link</span>
+                                                        {copiedLink ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                                                    </button>
+                                                )}
+                                                {room.user_role === 'admin' && (
+                                                    <button
+                                                        onClick={() => {
                                                             setShowMenu(false);
-                                                        }, 2000);
-                                                    }}
-                                                    className="w-full flex items-center justify-between px-4 py-3 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors"
-                                                >
-                                                    <span>Copy Invite Link</span>
-                                                    {copiedLink ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                                                </button>
+                                                            handleDeleteRoom();
+                                                        }}
+                                                        className="w-full flex items-center justify-between px-4 py-3 text-sm text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                                    >
+                                                        <span>Delete Room</span>
+                                                    </button>
+                                                )}
                                             </div>
                                         </>
                                     )}
