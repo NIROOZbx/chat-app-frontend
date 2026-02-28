@@ -65,7 +65,7 @@ const Rooms = () => {
             <main className="pt-24 sm:pt-32 pb-20 px-4 sm:px-6 max-w-7xl mx-auto">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8 lg:mb-12">
                     <div className="space-y-2">
-                        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter text-white">Your Rooms</h1>
+                        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-normal text-white">Your Rooms</h1>
                         <p className="text-white/50 text-base sm:text-lg">Explore and manage your chat communities.</p>
                     </div>
 
@@ -196,14 +196,20 @@ const Rooms = () => {
                                             <span>{room.Topic || "General"}</span>
                                         </div>
                                         <button
-                                            disabled={joiningId === room.ID}
-                                            className="text-white font-bold text-sm hover:underline underline-offset-4 transition-all disabled:opacity-50 flex items-center gap-2"
+                                            disabled={joiningId === room.ID || (activeTab === 'available' && room.IsPrivate)}
+                                            className={`font-bold text-sm hover:underline underline-offset-4 transition-all disabled:opacity-50 flex items-center gap-2 ${activeTab === 'available' && room.IsPrivate ? 'text-white/50 cursor-not-allowed hover:no-underline' : 'text-white'}`}
                                             onClick={() => activeTab === 'joined' ? navigate(`/rooms/${room.ID}`) : handleJoinRoom(room.ID)}
+                                            title={activeTab === 'available' && room.IsPrivate ? "An invite link is required to join private groups." : ""}
                                         >
                                             {joiningId === room.ID ? (
                                                 <Loader2 size={16} className="animate-spin" />
                                             ) : activeTab === 'joined' ? (
                                                 'Open Chat'
+                                            ) : room.IsPrivate ? (
+                                                <>
+                                                    <Lock size={14} />
+                                                    Needs Link
+                                                </>
                                             ) : (
                                                 'Join Room'
                                             )}

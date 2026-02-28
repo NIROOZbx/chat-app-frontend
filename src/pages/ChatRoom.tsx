@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Send, Paperclip, Smile, Loader2, Circle, LogOut, AlertTriangle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Send, Paperclip, Smile, Loader2, Circle, LogOut, AlertTriangle, RefreshCw, MoreVertical, Copy, Check } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useRooms, type Room } from '../context/RoomContext';
 import { useAuth } from '../context/AuthContext';
@@ -34,6 +34,12 @@ const ChatRoom: React.FC = () => {
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
     const [lastTyped, setLastTyped] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+    const [showMenu, setShowMenu] = useState(false);
+    const [copiedLink, setCopiedLink] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const userTypingTimeouts = useRef<Record<number, any>>({});
@@ -56,8 +62,50 @@ const ChatRoom: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages, scrollToBottom]);
+        if (shouldScrollToBottom) {
+            scrollToBottom();
+        }
+    }, [messages, scrollToBottom, shouldScrollToBottom]);
+
+    const fetchMessages = useCallback(async (page: number, append = false) => {
+        if (!id) return;
+
+        if (page === 1 && !isRefreshing) setLoadingMessages(true);
+        else if (page > 1) setIsLoadingMore(true);
+
+        try {
+            const limit = 50;
+            const response = await apiClient.get(`/rooms/${id}/messages?limit=${limit}&page=${page}`);
+            if (response.data.success) {
+                const rawMessages = response.data.data;
+                const mappedMessages = rawMessages.map((msg: any) => ({
+                    ID: msg.ID || msg.id || msg.MessageID || msg.message_id,
+                    RoomID: msg.RoomID || msg.room_id,
+                    UserID: msg.UserID || msg.user_id,
+                    UserName: msg.UserName || msg.user_name || msg.Username || 'User',
+                    Content: msg.Content || msg.content,
+                    CreatedAt: msg.CreatedAt || msg.created_at || msg.SentAt
+                }));
+
+                const sortedMessages = mappedMessages.reverse();
+
+                if (append) {
+                    setMessages(prev => [...sortedMessages, ...prev]);
+                } else {
+                    setMessages(sortedMessages);
+                }
+
+                setHasMore(rawMessages.length === limit);
+                setCurrentPage(page);
+            }
+        } catch (err) {
+            console.error('Error fetching messages:', err);
+        } finally {
+            setLoadingMessages(false);
+            setIsLoadingMore(false);
+            setIsRefreshing(false);
+        }
+    }, [id, isRefreshing]);
 
     // Initial messages and room details fetch
     useEffect(() => {
@@ -72,59 +120,26 @@ const ChatRoom: React.FC = () => {
 
         syncRoomDetails();
         setMessages([]);
-        setLoadingMessages(true);
-
-        const fetchMessages = async (showLoader = true) => {
-            if (showLoader) setLoadingMessages(true);
-            else setIsRefreshing(true);
-            try {
-                const response = await apiClient.get(`/rooms/${id}/messages?limit=50&page=1`);
-                if (response.data.success) {
-                    const mappedMessages = response.data.data.map((msg: any) => ({
-                        ID: msg.ID || msg.id || msg.MessageID || msg.message_id,
-                        RoomID: msg.RoomID || msg.room_id,
-                        UserID: msg.UserID || msg.user_id,
-                        UserName: msg.UserName || msg.user_name || msg.Username || 'User',
-                        Content: msg.Content || msg.content,
-                        CreatedAt: msg.CreatedAt || msg.created_at || msg.SentAt
-                    }));
-                    setMessages(mappedMessages.reverse());
-                }
-            } catch (err) {
-                console.error('Error fetching messages:', err);
-            } finally {
-                setLoadingMessages(false);
-                setIsRefreshing(false);
-            }
-        };
-
-        fetchMessages();
-
-        // Expose fetchMessages to a ref if needed or just use the local function
-        // For simplicity, I'll redefine it for the refresh button or move it out
-    }, [id]);
+        setShouldScrollToBottom(true);
+        fetchMessages(1);
+    }, [id, fetchMessages, fetchRoomById]);
 
     const handleManualRefresh = async () => {
         if (!id || isRefreshing) return;
         setIsRefreshing(true);
-        try {
-            const response = await apiClient.get(`/rooms/${id}/messages?limit=50&page=1`);
-            if (response.data.success) {
-                const mappedMessages = response.data.data.map((msg: any) => ({
-                    ID: msg.ID || msg.id || msg.MessageID || msg.message_id,
-                    RoomID: msg.RoomID || msg.room_id,
-                    UserID: msg.UserID || msg.user_id,
-                    UserName: msg.UserName || msg.user_name || msg.Username || 'User',
-                    Content: msg.Content || msg.content,
-                    CreatedAt: msg.CreatedAt || msg.created_at || msg.SentAt
-                }));
-                setMessages(mappedMessages.reverse());
-            }
-        } catch (err) {
-            console.error('Manual refresh failed:', err);
-        } finally {
-            setIsRefreshing(false);
+        setShouldScrollToBottom(true);
+        fetchMessages(1);
+    };
+
+    const handleLoadMore = () => {
+        if (!isLoadingMore && hasMore) {
+            handleLoadMoreAction();
         }
+    };
+
+    const handleLoadMoreAction = async () => {
+        setShouldScrollToBottom(false);
+        fetchMessages(currentPage + 1, true);
     };
 
     // WebSocket connection for presence and typing
@@ -218,6 +233,7 @@ const ChatRoom: React.FC = () => {
                                 }
 
                                 console.log('Adding new message to state:', newMessage);
+                                setShouldScrollToBottom(true);
                                 return [...prev, newMessage];
                             });
                             break;
@@ -250,6 +266,7 @@ const ChatRoom: React.FC = () => {
                                     CreatedAt: new Date().toISOString(),
                                     IsSystem: true
                                 };
+                                setShouldScrollToBottom(true);
                                 setMessages(m => [...m, onlineMsg]);
                             }
                             break;
@@ -283,6 +300,7 @@ const ChatRoom: React.FC = () => {
                                     CreatedAt: new Date().toISOString(),
                                     IsSystem: true
                                 };
+                                setShouldScrollToBottom(true);
                                 setMessages(m => [...m, offlineMsg]);
                             }
                             break;
@@ -353,6 +371,7 @@ const ChatRoom: React.FC = () => {
             IsOptimistic: true
         };
 
+        setShouldScrollToBottom(true);
         setMessages(prev => [...prev, optimisticMessage]);
 
         try {
@@ -454,6 +473,43 @@ const ChatRoom: React.FC = () => {
                                 <LogOut size={14} />
                                 <span className="hidden sm:inline">Leave Room</span>
                             </button>
+
+                            {room?.IsPrivate && (
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowMenu(!showMenu)}
+                                        className="p-2 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white transition-all hover:bg-white/10"
+                                    >
+                                        <MoreVertical size={16} />
+                                    </button>
+
+                                    {showMenu && (
+                                        <>
+                                            <div
+                                                className="fixed inset-0 z-40"
+                                                onClick={() => setShowMenu(false)}
+                                            />
+                                            <div className="absolute right-0 top-full mt-2 w-48 bg-neutral-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50">
+                                                <button
+                                                    onClick={() => {
+                                                        const link = `${window.location.origin}/join/${room.InviteCode}`;
+                                                        navigator.clipboard.writeText(link);
+                                                        setCopiedLink(true);
+                                                        setTimeout(() => {
+                                                            setCopiedLink(false);
+                                                            setShowMenu(false);
+                                                        }, 2000);
+                                                    }}
+                                                    className="w-full flex items-center justify-between px-4 py-3 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors"
+                                                >
+                                                    <span>Copy Invite Link</span>
+                                                    {copiedLink ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -499,6 +555,24 @@ const ChatRoom: React.FC = () => {
                                 </div>
                             ) : (
                                 <>
+                                    {hasMore && (
+                                        <div className="flex justify-center mb-4">
+                                            <button
+                                                onClick={handleLoadMore}
+                                                disabled={isLoadingMore}
+                                                className="flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10 transition-all text-sm font-medium disabled:opacity-50"
+                                            >
+                                                {isLoadingMore ? (
+                                                    <>
+                                                        <Loader2 size={16} className="animate-spin" />
+                                                        <span>Loading...</span>
+                                                    </>
+                                                ) : (
+                                                    <span>Load Older Messages</span>
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
                                     {messages.map((msg, index) => {
                                         if (msg.IsSystem) {
                                             return (
