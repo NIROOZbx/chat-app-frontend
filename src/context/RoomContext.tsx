@@ -15,6 +15,7 @@ export interface Room {
     UpdatedAt: string;
     online_count?: number;
     user_role?: string;
+    MemberCount?:number;
 }
 
 interface RoomContextType {

@@ -177,7 +177,7 @@ const Rooms = () => {
                                                 </span>
                                             </div>
                                             <span className="text-[10px] font-medium text-white/30">
-                                                {room.MaxMembers} max
+                                                {room.MemberCount}/{room.MaxMembers} 
                                             </span>
                                         </div>
                                     </div>
